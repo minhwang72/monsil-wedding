@@ -75,4 +75,8 @@ EXPOSE 1108
 ENV PORT 1108
 ENV HOSTNAME "0.0.0.0"
 
+# Healthcheck using Node.js (no curl needed)
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD node -e "require('http').get('http://127.0.0.1:1108/', res => { if (res.statusCode !== 200) process.exit(1); }).on('error', () => process.exit(1));"
+
 CMD ["node", "server.js"] 
