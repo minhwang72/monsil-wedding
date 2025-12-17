@@ -1538,16 +1538,37 @@ function AdminPageContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       })
+
+      // 응답 상태 확인
+      if (!res.ok) {
+        let errorMessage = '로그인에 실패했습니다.'
+        try {
+          const errorData = await res.json()
+          errorMessage = errorData.message || errorData.error || errorMessage
+        } catch {
+          // JSON 파싱 실패 시 상태 코드로 메시지 생성
+          if (res.status === 403) {
+            errorMessage = '접근이 거부되었습니다. 서버 설정을 확인해주세요.'
+          } else if (res.status === 401) {
+            errorMessage = '잘못된 사용자명 또는 비밀번호입니다.'
+          } else {
+            errorMessage = `로그인 실패 (${res.status})`
+          }
+        }
+        alert(errorMessage)
+        return
+      }
+
       const data = await res.json()
 
       if (data.success) {
         setIsAuthenticated(true)
       } else {
-        alert(data.error || '로그인에 실패했습니다.')
+        alert(data.message || data.error || '로그인에 실패했습니다.')
       }
     } catch (error) {
       console.error('Login failed:', error)
-      alert('로그인 중 오류가 발생했습니다.')
+      alert('로그인 중 오류가 발생했습니다: ' + (error instanceof Error ? error.message : '알 수 없는 오류'))
     }
   }
 

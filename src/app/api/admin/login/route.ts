@@ -2,9 +2,39 @@ import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/db'
 import { verifyPassword } from '@/lib/encryption'
 
+// OPTIONS 요청 처리 (CORS preflight)
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  })
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { username, password } = await request.json()
+    console.log('🔍 [DEBUG] Login request received')
+    console.log('🔍 [DEBUG] Request method:', request.method)
+    console.log('🔍 [DEBUG] Request URL:', request.url)
+    console.log('🔍 [DEBUG] Request headers:', Object.fromEntries(request.headers.entries()))
+
+    // 요청 본문 파싱
+    let body
+    try {
+      body = await request.json()
+      console.log('🔍 [DEBUG] Request body parsed:', { username: body.username, hasPassword: !!body.password })
+    } catch (parseError) {
+      console.error('❌ [DEBUG] Failed to parse request body:', parseError)
+      return NextResponse.json(
+        { success: false, message: '요청 본문을 파싱할 수 없습니다.' },
+        { status: 400 }
+      )
+    }
+
+    const { username, password } = body
 
     if (!username || !password) {
       return NextResponse.json(
