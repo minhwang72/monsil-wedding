@@ -149,9 +149,10 @@ jobs:
           docker run -d \
             --name ${{ env.CONTAINER_NAME }} \
             --restart unless-stopped \
-            --health-cmd "node -e \"require('http').get('http://127.0.0.1:${{ env.PORT }}/', res => { if (res.statusCode !== 200) process.exit(1); }).on('error', () => process.exit(1));\"" \
+            --health-cmd "node -e \"require('http').get('http://127.0.0.1:${{ env.PORT }}/', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))\"" \
             --health-interval 30s \
-            --health-timeout 5s \
+            --health-timeout 3s \
+            --health-start-period 40s \
             --health-retries 3 \
             -p ${{ env.PORT }}:${{ env.PORT }} \
             -e HOST=${{ env.HOST }} \
