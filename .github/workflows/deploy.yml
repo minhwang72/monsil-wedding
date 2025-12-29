@@ -99,14 +99,15 @@ jobs:
           NEXT_PUBLIC_KAKAO_JS_KEY=${{ secrets.NEXT_PUBLIC_KAKAO_JS_KEY }}
 
     - name: Deploy to Personal Server via SSH
-      uses: appleboy/ssh-action@v1.0.0
+      uses: appleboy/ssh-action@v1.1.0
       with:
         host: ${{ env.SERVER_HOST }}
         port: ${{ env.SERVER_PORT }}
         username: ${{ env.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        timeout: 30s
-        command_timeout: 10m
+        timeout: 60s
+        command_timeout: 15m
+        script_stop: true
         script: |
           echo "📁 Preparing host directories..."
           HOST_PUBLIC_DIR="/home/ubuntu/wedding-website/public"
@@ -148,12 +149,7 @@ jobs:
           echo "Starting new container..."
           docker run -d \
             --name ${{ env.CONTAINER_NAME }} \
-            --restart unless-stopped \
-            --health-cmd "node -e \"require('http').get('http://127.0.0.1:${{ env.PORT }}/', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))\"" \
-            --health-interval 30s \
-            --health-timeout 3s \
-            --health-start-period 40s \
-            --health-retries 3 \
+            --restart always \
             -p ${{ env.PORT }}:${{ env.PORT }} \
             -e HOST=${{ env.HOST }} \
             -e NODE_ENV=${{ env.NODE_ENV }} \
