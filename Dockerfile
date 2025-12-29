@@ -75,15 +75,7 @@ EXPOSE 1108
 ENV PORT 1108
 ENV HOSTNAME "0.0.0.0"
 
-# Healthcheck using Node.js (no curl needed)
-# 헬스체크 실패해도 웹페이지는 계속 운영되도록 관대한 설정
-# interval: 60초마다 체크 (너무 자주 체크하면 부담)
-# timeout: 15초 (헬스체크 응답 대기 시간 - 충분히 여유있게)
-# start-period: 90초 (초기 시작 대기 시간)
-# retries: 5회 (5회 연속 실패 시에만 unhealthy로 표시 - 더 관대하게)
-# 중요: 헬스체크 실패(unhealthy)해도 컨테이너는 계속 실행됨
-# 타임아웃 처리 강화: 응답이 없어도 무한 대기하지 않도록 명시적 타임아웃 설정
-HEALTHCHECK --interval=60s --timeout=15s --start-period=90s --retries=5 \
-  CMD node -e "const http=require('http');const req=http.get('http://127.0.0.1:1108/api/health',{timeout:10000},(r)=>{r.on('data',()=>{});r.on('end',()=>process.exit(r.statusCode===200?0:1))});req.on('error',()=>process.exit(1));req.on('timeout',()=>{req.destroy();process.exit(1)});setTimeout(()=>{req.destroy();process.exit(1)},10000)"
+# Healthcheck 비활성화
+HEALTHCHECK NONE
 
 CMD ["node", "server.js"] 
