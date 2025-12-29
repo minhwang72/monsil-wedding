@@ -78,4 +78,9 @@ ENV HOSTNAME "0.0.0.0"
 # Healthcheck 비활성화
 HEALTHCHECK NONE
 
+# ⚠️ 보안 주의사항:
+# 운영 서버에서는 절대 pkill, killall 등의 프로세스 종료 명령을 사용하지 마세요.
+# child_process.exec/spawn을 사용한 시스템 명령 실행도 금지됩니다.
+# 이러한 명령은 Next.js 서버 프로세스 자체를 종료시켜 무한 로딩을 유발할 수 있습니다.
+
 CMD ["node", "server.js"] 
