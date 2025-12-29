@@ -39,14 +39,31 @@ export default function CoverSection() {
     // 커버 이미지 API 호출
     const fetchCoverImage = async () => {
       try {
-        const response = await fetch('/api/cover-image')
+        // 타임아웃 설정 (10초)
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10000)
+        
+        const response = await fetch('/api/cover-image', {
+          signal: controller.signal
+        })
+        clearTimeout(timeoutId)
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`)
+        }
+        
         const data = await response.json()
         
         if (data.success && data.data?.url) {
           setImageUrl(data.data.url)
         }
       } catch (error) {
-        console.error('Error fetching cover image:', error)
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.error('Error fetching cover image: Request timeout')
+        } else {
+          console.error('Error fetching cover image:', error)
+        }
+        // 에러 발생 시 기본 이미지 사용 (무한 로딩 방지)
       } finally {
         setIsLoading(false)
       }
