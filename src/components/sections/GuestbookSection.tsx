@@ -121,13 +121,19 @@ export default function GuestbookSection({ guestbook, onGuestbookUpdate }: Guest
     setIsSubmitting(true)
     
     try {
+      // 타임아웃 설정 (10초)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
+      
       const response = await fetch('/api/guestbook', {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
       })
+      clearTimeout(timeoutId)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)

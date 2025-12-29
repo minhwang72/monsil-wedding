@@ -4,7 +4,8 @@ import type { ApiResponse, ContactPerson } from '@/types'
 
 export async function GET() {
   try {
-    const [rows] = await pool.query(`
+    // DB 쿼리 타임아웃 설정 (10초)
+    const queryPromise = pool.query(`
       SELECT id, side, relationship, name, phone, bank_name, account_number, kakaopay_link 
       FROM contacts 
       ORDER BY side, 
@@ -14,6 +15,12 @@ export async function GET() {
           WHEN 'mother' THEN 3 
         END
     `)
+    
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Database query timeout')), 10000)
+    })
+    
+    const [rows] = await Promise.race([queryPromise, timeoutPromise]) as [unknown[], unknown]
     
     const contacts = rows as ContactPerson[]
     

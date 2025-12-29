@@ -24,17 +24,40 @@ const fetchWithCache = async (url: string, forceRefresh = false) => {
   }
   
   console.log('🔍 [DEBUG] Fetching fresh data for:', url)
-  const response = await fetch(url, {
-    // 캐시 방지를 위한 헤더 추가
-    headers: {
-      'Cache-Control': 'no-cache',
-      'Pragma': 'no-cache'
-    }
-  })
-  const data = await response.json()
   
-  apiCache.set(url, { data, timestamp: now })
-  return data
+  // 타임아웃 설정 (10초)
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 10000)
+  
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      // 캐시 방지를 위한 헤더 추가
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    })
+    clearTimeout(timeoutId)
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+    
+    const data = await response.json()
+    
+    // 성공 시에만 캐시에 저장
+    apiCache.set(url, { data, timestamp: now })
+    return data
+  } catch (error) {
+    clearTimeout(timeoutId)
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('Error fetching guestbook: Request timeout')
+    } else {
+      console.error('Error fetching guestbook:', error)
+    }
+    throw error
+  }
 }
 
 // 방명록 로딩 스켈레톤

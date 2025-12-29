@@ -13,10 +13,16 @@ interface GuestbookResponse {
 
 export async function GET() {
   try {
-    // 캐시 헤더와 함께 응답 최적화
-    const [rows] = await pool.query(
+    // DB 쿼리 타임아웃 설정 (10초)
+    const queryPromise = pool.query(
       'SELECT id, name, content, created_at FROM guestbook WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 50'
     )
+    
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Database query timeout')), 10000)
+    })
+    
+    const [rows] = await Promise.race([queryPromise, timeoutPromise]) as [unknown[], unknown]
     const guestbookRows = rows as Guestbook[]
     
     // DB에서 가져온 시간을 원하는 형식으로 포맷팅

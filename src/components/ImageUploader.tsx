@@ -188,10 +188,16 @@ export default function ImageUploader({
         ])
       })
       
+      // 타임아웃 설정 (60초 - 파일 업로드는 시간이 걸릴 수 있음)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 60000)
+      
       const response = await fetch('/api/upload/image', {
         method: 'POST',
+        signal: controller.signal,
         body: formData,
       })
+      clearTimeout(timeoutId)
       
       console.log('🔍 [DEBUG] Upload response:', {
         status: response.status,

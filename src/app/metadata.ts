@@ -16,13 +16,21 @@ export async function generateMetadata(): Promise<Metadata> {
         : 'http://localhost:3000')  // 개발 환경
       
     console.log(`[DEBUG] Fetching gallery data from: ${baseUrl}/api/gallery`)
-    const response = await fetch(`${baseUrl}/api/gallery?t=${timestamp}`, {
+    
+    // 타임아웃 설정 (10초)
+    const fetchPromise = fetch(`${baseUrl}/api/gallery?t=${timestamp}`, {
       cache: 'no-store',
       next: { revalidate: 0 }, // ISR 캐시도 무효화
       headers: {
         'User-Agent': 'MonsilBot/1.0 (Wedding Invitation Metadata Generator)',
       }
     })
+    
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Metadata fetch timeout')), 10000)
+    })
+    
+    const response = await Promise.race([fetchPromise, timeoutPromise])
     
     console.log(`[DEBUG] Gallery API response status: ${response.status}`)
     
