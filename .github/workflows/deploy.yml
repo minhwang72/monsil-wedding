@@ -109,42 +109,14 @@ jobs:
         command_timeout: 15m
         script_stop: true
         script: |
-          echo "📁 Preparing host directories..."
-          HOST_PUBLIC_DIR="/home/ubuntu/wedding-website/public"
-          mkdir -p $HOST_PUBLIC_DIR/uploads/images
-          
-          # 권한 설정 (sudo 없이)
-          chmod 755 $HOST_PUBLIC_DIR
-          chmod 755 $HOST_PUBLIC_DIR/uploads
-          chmod 755 $HOST_PUBLIC_DIR/uploads/images
-          chown -R 1001:1001 $HOST_PUBLIC_DIR
-
+          echo "Stopping previous container..."
           if docker ps -a | grep -q ${{ env.CONTAINER_NAME }}; then
-            echo "Stopping and removing previous container..."
             docker stop ${{ env.CONTAINER_NAME }} || true
             docker rm ${{ env.CONTAINER_NAME }} || true
           fi
 
-          echo "Pulling new image..."
+          echo "Pulling image..."
           docker pull ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
-
-          echo "📄 Copying static files from Docker image to host..."
-          TEMP_CONTAINER_ID=$(docker create ${{ env.DOCKER_IMAGE }}:${{ github.sha }})
-          docker cp $TEMP_CONTAINER_ID:/app/public/favicon.svg $HOST_PUBLIC_DIR/favicon.svg
-          docker cp $TEMP_CONTAINER_ID:/app/public/next.svg $HOST_PUBLIC_DIR/next.svg || true
-          docker cp $TEMP_CONTAINER_ID:/app/public/vercel.svg $HOST_PUBLIC_DIR/vercel.svg || true
-          docker cp $TEMP_CONTAINER_ID:/app/public/window.svg $HOST_PUBLIC_DIR/window.svg || true
-          docker cp $TEMP_CONTAINER_ID:/app/public/globe.svg $HOST_PUBLIC_DIR/globe.svg || true
-          docker cp $TEMP_CONTAINER_ID:/app/public/file.svg $HOST_PUBLIC_DIR/file.svg || true
-          docker rm $TEMP_CONTAINER_ID
-          
-          chown -R 1001:1001 $HOST_PUBLIC_DIR
-          chmod -R 644 $HOST_PUBLIC_DIR/*.svg
-
-          echo "🔍 Checking copied files..."
-          ls -la $HOST_PUBLIC_DIR/favicon.* || echo "❌ Favicon files not found"
-          echo "📄 Files in public directory:"
-          ls -la $HOST_PUBLIC_DIR/
 
           echo "Starting new container..."
           docker run -d \
@@ -157,19 +129,14 @@ jobs:
             -e NAVER_MAP_CLIENT_SECRET="${{ secrets.NAVER_MAP_CLIENT_SECRET }}" \
             -e NEXT_PUBLIC_KAKAO_JS_KEY="${{ secrets.NEXT_PUBLIC_KAKAO_JS_KEY }}" \
             --user 1001:1001 \
-            -v $HOST_PUBLIC_DIR:/app/public \
+            -v /home/ubuntu/wedding-website/uploads:/app/public/uploads \
             ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
 
-          # 컨테이너 시작 후 권한 재설정
           sleep 5
-          docker exec ${{ env.CONTAINER_NAME }} chown -R 1001:1001 /app/public/uploads || true
-          docker exec ${{ env.CONTAINER_NAME }} chmod -R 755 /app/public/uploads || true
-
           echo "Checking deployment status..."
-          sleep 10
           if docker ps | grep -q ${{ env.CONTAINER_NAME }}; then
             echo "✅ Deployment successful!"
-            docker logs ${{ env.CONTAINER_NAME }}
+            docker logs --tail 20 ${{ env.CONTAINER_NAME }}
           else
             echo "❌ Deployment failed!"
             docker logs ${{ env.CONTAINER_NAME }}
