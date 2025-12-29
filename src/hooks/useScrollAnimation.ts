@@ -18,7 +18,7 @@ export function useScrollAnimation(options: UseScrollAnimationOptions = {}) {
   } = options
   
   const [isVisible, setIsVisible] = useState(false)
-  const [hasTriggered, setHasTriggered] = useState(false)
+  const hasTriggeredRef = useRef(false)
   const [shouldAnimate, setShouldAnimate] = useState(disabled)
   const ref = useRef<HTMLDivElement>(null)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -30,7 +30,7 @@ export function useScrollAnimation(options: UseScrollAnimationOptions = {}) {
     }
 
     setShouldAnimate(false)
-    setHasTriggered(false)
+    hasTriggeredRef.current = false
     setIsVisible(false)
 
     const element = ref.current
@@ -47,9 +47,9 @@ export function useScrollAnimation(options: UseScrollAnimationOptions = {}) {
         const isIntersecting = entry.isIntersecting
         setIsVisible(isIntersecting)
         
-        if (isIntersecting && (!triggerOnce || !hasTriggered)) {
+        if (isIntersecting && (!triggerOnce || !hasTriggeredRef.current)) {
           if (triggerOnce) {
-            setHasTriggered(true)
+            hasTriggeredRef.current = true
           }
           
           // 이전 타임아웃 제거
