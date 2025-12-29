@@ -12,7 +12,8 @@ interface DatabaseGalleryRow {
 
 export async function GET() {
   try {
-    const [rows] = await pool.query(`
+    // DB 쿼리 타임아웃 설정 (10초) - 504 방지를 위해 빠르게 실패
+    const queryPromise = pool.query(`
       SELECT id, filename, image_type, created_at, order_index
       FROM gallery 
       ORDER BY 
@@ -25,6 +26,13 @@ export async function GET() {
           ELSE created_at
         END ASC
     `)
+    
+    // 타임아웃 처리
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Database query timeout')), 10000)
+    })
+    
+    const [rows] = await Promise.race([queryPromise, timeoutPromise]) as [DatabaseGalleryRow[], unknown]
     
     const gallery = (rows as DatabaseGalleryRow[]).map(row => ({
       id: row.id,
@@ -49,13 +57,12 @@ export async function GET() {
     })
   } catch (error) {
     console.error('Error fetching gallery:', error)
-    return NextResponse.json<ApiResponse<null>>(
-      {
-        success: false,
-        error: 'Failed to fetch gallery',
-      },
-      { status: 500 }
-    )
+    // 타임아웃이나 에러 발생 시 빈 배열 반환 (504 방지)
+    // 클라이언트는 빈 갤러리로 표시하지만 페이지는 정상 로드됨
+    return NextResponse.json<ApiResponse<Gallery[]>>({
+      success: true,
+      data: [],
+    })
   }
 }
 
