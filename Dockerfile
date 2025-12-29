@@ -76,12 +76,13 @@ ENV PORT 1108
 ENV HOSTNAME "0.0.0.0"
 
 # Healthcheck using Node.js (no curl needed)
-# 장기 운영을 위해 더 자주 체크하고, 타임아웃도 적절히 설정
-# interval: 20초마다 체크 (더 자주 모니터링)
-# timeout: 8초 (헬스체크 응답 대기 시간)
-# start-period: 60초 (초기 시작 대기 시간)
-# retries: 3회 (3회 연속 실패 시 unhealthy로 표시)
-HEALTHCHECK --interval=20s --timeout=8s --start-period=60s --retries=3 \
-  CMD node -e "require('http').get('http://127.0.0.1:1108/api/health', {timeout: 6000}, (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1)).on('timeout', () => process.exit(1))"
+# 헬스체크 실패해도 웹페이지는 계속 운영되도록 관대한 설정
+# interval: 60초마다 체크 (너무 자주 체크하면 부담)
+# timeout: 15초 (헬스체크 응답 대기 시간 - 충분히 여유있게)
+# start-period: 90초 (초기 시작 대기 시간)
+# retries: 5회 (5회 연속 실패 시에만 unhealthy로 표시 - 더 관대하게)
+# 중요: 헬스체크 실패(unhealthy)해도 컨테이너는 계속 실행됨
+HEALTHCHECK --interval=60s --timeout=15s --start-period=90s --retries=5 \
+  CMD node -e "require('http').get('http://127.0.0.1:1108/api/health', {timeout: 12000}, (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1)).on('timeout', () => process.exit(1))"
 
 CMD ["node", "server.js"] 
