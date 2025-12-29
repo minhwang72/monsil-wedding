@@ -11,7 +11,56 @@ const pool = mysql.createPool({
   database: 'eungming_wedding',
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  connectTimeout: 10000, // 10초 연결 타임아웃
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0,
 });
 
-export default pool; 
+// 기존 pool export
+export default pool;
+
+// 연결 풀 상태 모니터링 및 장기 운영 안정성 확보
+// 3분마다 체크하여 연결이 살아있는지 확인
+if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
+  let consecutiveErrors = 0;
+  const MAX_CONSECUTIVE_ERRORS = 5; // 5회 연속 실패 시 경고
+  
+  setInterval(async () => {
+    try {
+      const connection = await pool.getConnection();
+      await connection.ping(); // 연결이 살아있는지 확인
+      connection.release();
+      
+      consecutiveErrors = 0; // 성공 시 에러 카운터 리셋
+    } catch (error) {
+      consecutiveErrors++;
+      console.error(`[DB] Connection pool error (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}):`, error);
+      
+      // 연속 에러가 많으면 경고
+      if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+        console.error('[DB] ⚠️ WARNING: Multiple consecutive connection pool errors detected!');
+        consecutiveErrors = 0; // 리셋하여 반복 경고 방지
+      }
+    }
+  }, 3 * 60 * 1000); // 3분마다 체크 (더 자주 모니터링)
+  
+  // 메모리 사용량 모니터링 (30분마다)
+  setInterval(() => {
+    if (typeof process !== 'undefined' && process.memoryUsage) {
+      const memUsage = process.memoryUsage();
+      const memUsageMB = {
+        rss: Math.round(memUsage.rss / 1024 / 1024),
+        heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
+        heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
+        external: Math.round(memUsage.external / 1024 / 1024)
+      };
+      console.log('[DB] Memory usage:', memUsageMB, 'MB');
+      
+      // 메모리 사용량이 500MB를 넘으면 경고
+      if (memUsageMB.heapUsed > 500) {
+        console.warn('[DB] ⚠️ WARNING: High memory usage detected!');
+      }
+    }
+  }, 30 * 60 * 1000); // 30분마다
+}

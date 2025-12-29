@@ -2,10 +2,6 @@
 const nextConfig = {
   output: 'standalone',
   serverExternalPackages: ['sharp'],
-  // IPv4 우선 사용 설정
-  experimental: {
-    serverComponentsExternalPackages: ['sharp'],
-  },
   // IPv6 문제 해결을 위한 설정
   webpack: (config, { isServer }) => {
     if (isServer) {
