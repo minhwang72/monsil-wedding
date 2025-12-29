@@ -21,19 +21,41 @@ const fetchWithCache = async (url: string, forceRefresh = false) => {
     return cached.data
   }
   
-  // Cache busting을 위한 timestamp 추가
-  const timestamp = Date.now()
-  const response = await fetch(`${url}?t=${timestamp}`, {
-    cache: 'no-store',
-    headers: {
-      'Cache-Control': 'no-cache',
-      'Pragma': 'no-cache'
-    }
-  })
-  const data = await response.json()
+  // 타임아웃 설정 (10초)
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 10000)
   
-  apiCache.set(url, { data, timestamp: now })
-  return data
+  try {
+    // Cache busting을 위한 timestamp 추가
+    const timestamp = Date.now()
+    const response = await fetch(`${url}?t=${timestamp}`, {
+      signal: controller.signal,
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    })
+    clearTimeout(timeoutId)
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+    
+    const data = await response.json()
+    apiCache.set(url, { data, timestamp: now })
+    return data
+  } catch (error) {
+    clearTimeout(timeoutId)
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error(`Error fetching ${url}: Request timeout`)
+      // 타임아웃 시 캐시된 데이터 반환 (있으면)
+      if (cached) {
+        return cached.data
+      }
+    }
+    throw error
+  }
 }
 
 // 갤러리 로딩 스켈레톤
@@ -80,7 +102,8 @@ export default function LazyGallerySection() {
       }
     } catch (error) {
       console.error('Error fetching gallery:', error)
-      setGallery([])
+      // 에러 발생 시 기존 갤러리 데이터 유지 (무한 로딩 방지)
+      // setGallery([]) 제거하여 빈 화면 방지
     } finally {
       setLoading(false)
     }

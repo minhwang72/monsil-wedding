@@ -17,22 +17,38 @@ export default function ContactSection() {
 
   const fetchContacts = useCallback(async () => {
     try {
+      // 타임아웃 설정 (10초)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
+      
       // Cache busting을 위한 timestamp 추가
       const timestamp = Date.now()
       const response = await fetch(`/api/contacts?t=${timestamp}`, {
+        signal: controller.signal,
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
         }
       })
+      clearTimeout(timeoutId)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+      
       const data = await response.json()
       
       if (data.success) {
         setContacts(data.data || [])
       }
     } catch (error) {
-      console.error('Error fetching contacts:', error)
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error('Error fetching contacts: Request timeout')
+      } else {
+        console.error('Error fetching contacts:', error)
+      }
+      // 에러 발생 시 기존 데이터 유지 (무한 로딩 방지)
     } finally {
       setLoading(false)
     }

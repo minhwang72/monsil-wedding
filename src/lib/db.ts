@@ -26,11 +26,24 @@ if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
   let consecutiveErrors = 0;
   const MAX_CONSECUTIVE_ERRORS = 5; // 5회 연속 실패 시 경고
   
-  setInterval(async () => {
+  let dbCheckInterval: NodeJS.Timeout | null = null
+  let memoryCheckInterval: NodeJS.Timeout | null = null
+  
+  // DB 연결 체크 (타임아웃 포함)
+  dbCheckInterval = setInterval(async () => {
     try {
-      const connection = await pool.getConnection();
-      await connection.ping(); // 연결이 살아있는지 확인
-      connection.release();
+      // 타임아웃 설정 (5초)
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('DB ping timeout')), 5000)
+      })
+      
+      const pingPromise = (async () => {
+        const connection = await pool.getConnection()
+        await connection.ping()
+        connection.release()
+      })()
+      
+      await Promise.race([pingPromise, timeoutPromise])
       
       consecutiveErrors = 0; // 성공 시 에러 카운터 리셋
     } catch (error) {
@@ -43,10 +56,10 @@ if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
         consecutiveErrors = 0; // 리셋하여 반복 경고 방지
       }
     }
-  }, 3 * 60 * 1000); // 3분마다 체크 (더 자주 모니터링)
+  }, 3 * 60 * 1000); // 3분마다 체크
   
   // 메모리 사용량 모니터링 (30분마다)
-  setInterval(() => {
+  memoryCheckInterval = setInterval(() => {
     if (typeof process !== 'undefined' && process.memoryUsage) {
       const memUsage = process.memoryUsage();
       const memUsageMB = {
@@ -63,4 +76,14 @@ if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
       }
     }
   }, 30 * 60 * 1000); // 30분마다
+  
+  // 프로세스 종료 시 interval 정리
+  if (typeof process !== 'undefined' && process.on) {
+    const cleanup = () => {
+      if (dbCheckInterval) clearInterval(dbCheckInterval)
+      if (memoryCheckInterval) clearInterval(memoryCheckInterval)
+    }
+    process.on('SIGTERM', cleanup)
+    process.on('SIGINT', cleanup)
+  }
 }
