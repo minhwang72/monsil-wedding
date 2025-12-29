@@ -115,51 +115,7 @@ export default function LazyGallerySection() {
     }
   }, [shouldLoad, hasLoaded, fetchGallery])
 
-  // 주기적 리프레시 (페이지 포커스 시에만, 5분마다)
-  // 무한 로딩 방지를 위해 갱신 주기를 늘리고, 페이지 포커스 체크 추가
-  useEffect(() => {
-    if (!hasLoaded) return
-    
-    let interval: NodeJS.Timeout | null = null
-    
-    const handleFocus = () => {
-      // 페이지 포커스 시에만 갱신 시작
-      if (interval) clearInterval(interval)
-      interval = setInterval(async () => {
-        try {
-          await fetchGallery(true) // 강제 리프레시
-        } catch {
-          // 실패 시 interval 정지 (무한 재시도 방지)
-          if (interval) {
-            clearInterval(interval)
-            interval = null
-          }
-        }
-      }, 5 * 60 * 1000) // 5분마다 (30초 → 5분으로 변경)
-    }
-    
-    const handleBlur = () => {
-      // 페이지가 포커스를 잃으면 갱신 중지
-      if (interval) {
-        clearInterval(interval)
-        interval = null
-      }
-    }
-    
-    window.addEventListener('focus', handleFocus)
-    window.addEventListener('blur', handleBlur)
-    
-    // 초기 포커스 상태 확인
-    if (document.hasFocus()) {
-      handleFocus()
-    }
-
-    return () => {
-      if (interval) clearInterval(interval)
-      window.removeEventListener('focus', handleFocus)
-      window.removeEventListener('blur', handleBlur)
-    }
-  }, [hasLoaded, fetchGallery])
+  // 자동 갱신 제거: 페이지 로드/새로고침 시 자동으로 API 호출되므로 불필요
 
   return (
     <div ref={ref}>

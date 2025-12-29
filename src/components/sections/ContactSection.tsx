@@ -58,49 +58,9 @@ export default function ContactSection() {
   }, [])
 
   useEffect(() => {
+    // 페이지 로드 시 한 번만 API 호출
+    // 새로고침하면 자동으로 다시 호출되므로 자동 갱신 불필요
     fetchContacts()
-    
-    // 페이지가 포커스되어 있을 때만 주기적 리프레시 (5분마다)
-    // 무한 로딩 방지를 위해 갱신 주기를 늘리고, 페이지 포커스 체크 추가
-    let interval: NodeJS.Timeout | null = null
-    
-    const handleFocus = () => {
-      // 페이지 포커스 시에만 갱신 시작
-      if (interval) clearInterval(interval)
-      interval = setInterval(async () => {
-        // 이전 요청이 실패했을 때만 재시도 (연속 실패 방지)
-        const success = await fetchContacts()
-        if (!success) {
-          // 실패 시 interval 정지 (무한 재시도 방지)
-          if (interval) {
-            clearInterval(interval)
-            interval = null
-          }
-        }
-      }, 5 * 60 * 1000) // 5분마다 (30초 → 5분으로 변경)
-    }
-    
-    const handleBlur = () => {
-      // 페이지가 포커스를 잃으면 갱신 중지
-      if (interval) {
-        clearInterval(interval)
-        interval = null
-      }
-    }
-    
-    window.addEventListener('focus', handleFocus)
-    window.addEventListener('blur', handleBlur)
-    
-    // 초기 포커스 상태 확인
-    if (document.hasFocus()) {
-      handleFocus()
-    }
-
-    return () => {
-      if (interval) clearInterval(interval)
-      window.removeEventListener('focus', handleFocus)
-      window.removeEventListener('blur', handleBlur)
-    }
   }, [fetchContacts])
 
   const handleCall = (phone: string) => {
