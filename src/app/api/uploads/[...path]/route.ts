@@ -8,7 +8,8 @@ export async function GET(
 ) {
   try {
     const { path } = await params
-    const filePath = join(process.cwd(), 'public', 'uploads', ...path)
+    const uploadsDir = process.env.UPLOAD_DIR || '/app/public/uploads'
+    const filePath = join(uploadsDir, ...path)
     
     // 파일 존재 확인
     try {

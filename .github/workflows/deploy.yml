@@ -126,6 +126,7 @@ jobs:
             -p ${{ env.PORT }}:${{ env.PORT }} \
             -e HOST=${{ env.HOST }} \
             -e NODE_ENV=${{ env.NODE_ENV }} \
+            -e UPLOAD_DIR=/app/public/uploads \
             -e NEXT_PUBLIC_NAVER_MAP_CLIENT_ID="${{ secrets.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID }}" \
             -e NAVER_MAP_CLIENT_SECRET="${{ secrets.NAVER_MAP_CLIENT_SECRET }}" \
             -e NEXT_PUBLIC_KAKAO_JS_KEY="${{ secrets.NEXT_PUBLIC_KAKAO_JS_KEY }}" \

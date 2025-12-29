@@ -1,7 +1,8 @@
 import { mkdir, unlink, access, chmod, stat } from 'fs/promises'
 import { join } from 'path'
 
-export const UPLOAD_BASE_DIR = join(process.cwd(), 'public', 'uploads')
+// 환경변수에서 업로드 디렉토리 경로 가져오기 (기본값: /app/public/uploads)
+export const UPLOAD_BASE_DIR = process.env.UPLOAD_DIR || '/app/public/uploads'
 
 export async function ensureUploadDir(dateString: string): Promise<string> {
   const datePath = join(UPLOAD_BASE_DIR, dateString)
@@ -45,7 +46,7 @@ export async function ensureUploadDir(dateString: string): Promise<string> {
 }
 
 export async function ensureImageUploadDir(): Promise<string> {
-  const imagesPath = join(process.cwd(), 'public', 'uploads', 'images')
+  const imagesPath = join(UPLOAD_BASE_DIR, 'images')
   
   try {
     // 디렉토리 생성

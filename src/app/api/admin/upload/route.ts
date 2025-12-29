@@ -98,8 +98,8 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await fileData.arrayBuffer())
     console.log('🔍 [DEBUG] File buffer size:', buffer.length)
 
-    // Generate paths and filename - images 폴더로 통합
-    const uploadsDir = join(process.cwd(), 'public', 'uploads')
+    // Generate paths and filename - images 폴더로 통합 (환경변수 사용)
+    const uploadsDir = process.env.UPLOAD_DIR || '/app/public/uploads'
     const imagesDir = join(uploadsDir, 'images')
     
     // images 디렉토리 확인 및 생성 (권한 오류 무시)
@@ -166,7 +166,8 @@ export async function POST(request: NextRequest) {
       // Delete physical files
       for (const image of existingImages) {
         if (image.filename) {
-          const oldFilePath = join(process.cwd(), 'public', 'uploads', image.filename)
+          const uploadsDir = process.env.UPLOAD_DIR || '/app/public/uploads'
+          const oldFilePath = join(uploadsDir, image.filename)
           try {
             await import('fs/promises').then(async fs => {
               try {

@@ -116,7 +116,8 @@ export async function POST(request: Request) {
             const { unlink, access } = await import('fs/promises')
             const { join } = await import('path')
             
-            const filePath = join(process.cwd(), 'public', 'uploads', existingImage.filename)
+            const uploadsDir = process.env.UPLOAD_DIR || '/app/public/uploads'
+            const filePath = join(uploadsDir, existingImage.filename)
             
             // 파일이 존재하는지 확인 후 삭제
             await access(filePath)

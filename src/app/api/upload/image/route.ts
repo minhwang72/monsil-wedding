@@ -102,8 +102,8 @@ export async function POST(request: NextRequest) {
     const fileExtension = '.jpg' // 항상 JPEG로 변환하여 저장
     const fileName = targetId ? `${targetId}${fileExtension}` : `${timestamp}${fileExtension}`
     
-    // images 폴더 구조로 변경
-    const uploadsDir = join(process.cwd(), 'public', 'uploads')
+    // images 폴더 구조로 변경 (환경변수 사용)
+    const uploadsDir = process.env.UPLOAD_DIR || '/app/public/uploads'
     const imagesDir = join(uploadsDir, 'images')
     const filePath = join(imagesDir, fileName)
     const fileUrl = `/uploads/images/${fileName}` // 올바른 URL 경로
