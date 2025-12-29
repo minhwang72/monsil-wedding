@@ -109,14 +109,15 @@ jobs:
         command_timeout: 15m
         script_stop: true
         script: |
-          echo "Stopping previous container..."
-          if docker ps -a | grep -q ${{ env.CONTAINER_NAME }}; then
+          echo "Checking for existing container..."
+          if docker ps -a --format '{{.Names}}' | grep -w ${{ env.CONTAINER_NAME }}; then
+            echo "⚠️ Old container found, replacing..."
             docker stop ${{ env.CONTAINER_NAME }} || true
             docker rm ${{ env.CONTAINER_NAME }} || true
           fi
 
           echo "Pulling image..."
-          docker pull ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+          docker pull ${{ env.DOCKER_IMAGE }}:${{ github.sha }} || exit 1
 
           echo "Starting new container..."
           docker run -d \
