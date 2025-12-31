@@ -73,11 +73,51 @@ export async function POST(request: NextRequest) {
     // 이제 fileData는 File | Blob 타입임이 보장됨
     const filename = (fileData as { name?: string }).name || 'uploaded.jpg'
     
+    // 보안: 파일 확장자 검증 (경로 traversal 및 악성 파일 방지)
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp']
+    const fileExtension = filename.toLowerCase().substring(filename.lastIndexOf('.'))
+    if (!allowedExtensions.includes(fileExtension)) {
+      console.log('❌ [DEBUG] Invalid file extension:', fileExtension)
+      return NextResponse.json<ApiResponse<null>>(
+        {
+          success: false,
+          error: '지원되지 않는 파일 형식입니다. JPG, PNG, WebP만 업로드 가능합니다.',
+        },
+        { status: 400 }
+      )
+    }
+    
+    // 보안: 파일명에서 경로 traversal 시도 차단
+    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      console.log('❌ [DEBUG] Path traversal attempt detected:', filename)
+      return NextResponse.json<ApiResponse<null>>(
+        {
+          success: false,
+          error: '잘못된 파일명입니다.',
+        },
+        { status: 400 }
+      )
+    }
+    
+    // 보안: MIME 타입 검증
+    const fileType = (fileData as { type?: string }).type || ''
+    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+    if (!allowedMimeTypes.includes(fileType)) {
+      console.log('❌ [DEBUG] Invalid MIME type:', fileType)
+      return NextResponse.json<ApiResponse<null>>(
+        {
+          success: false,
+          error: '지원되지 않는 파일 형식입니다. 이미지 파일만 업로드 가능합니다.',
+        },
+        { status: 400 }
+      )
+    }
+    
     console.log('🔍 [DEBUG] Upload info:', {
       filename,
       size: fileData.size,
       sizeInMB: (fileData.size / 1024 / 1024).toFixed(2) + 'MB',
-      type: (fileData as { type?: string }).type,
+      type: fileType,
       image_type,
       hasFile: true
     })
@@ -123,7 +163,7 @@ export async function POST(request: NextRequest) {
       console.log('ℹ️ [DEBUG] Directory access/creation failed (continuing anyway):', dirError)
     }
     
-    // 파일명 생성 로직 개선 (랜덤 문자열 사용)
+    // 파일명 생성 로직 개선 (랜덤 문자열 사용, 보안 강화)
     let dbFilename: string
     
     if (image_type === 'main') {
@@ -131,13 +171,17 @@ export async function POST(request: NextRequest) {
       dbFilename = 'main_cover.jpg'
     } else {
       // 갤러리 이미지인 경우 - 랜덤 문자열 사용 (순서 혼동 방지)
+      // 보안: 파일명에 안전한 문자만 사용 (알파벳, 숫자, 언더스코어, 하이픈만)
       const randomString = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
       const timestamp = Date.now()
+      // 확장자는 항상 .jpg로 강제 (Sharp로 변환되므로)
       dbFilename = `gallery_${timestamp}_${randomString}.jpg`
     }
     
-    const filepath = join(imagesDir, dbFilename)
-    const dbPath = `images/${dbFilename}` // DB에 저장할 상대 경로
+    // 보안: 파일명 sanitization (경로 traversal 방지)
+    const sanitizedFilename = dbFilename.replace(/[^a-zA-Z0-9._-]/g, '_')
+    const filepath = join(imagesDir, sanitizedFilename)
+    const dbPath = `images/${sanitizedFilename}` // DB에 저장할 상대 경로 (sanitized 사용)
     
     console.log('🔍 [DEBUG] File paths:', {
       imagesDir,
