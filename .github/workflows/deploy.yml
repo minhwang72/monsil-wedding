@@ -127,11 +127,16 @@ jobs:
             -e HOST=${{ env.HOST }} \
             -e NODE_ENV=${{ env.NODE_ENV }} \
             -e UPLOAD_DIR=/app/public/uploads \
+            -e DB_HOST="${{ secrets.DB_HOST }}" \
+            -e DB_PORT="${{ secrets.DB_PORT }}" \
+            -e DB_USER="${{ secrets.DB_USER }}" \
+            -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            -e DB_NAME="${{ secrets.DB_NAME }}" \
             -e NEXT_PUBLIC_NAVER_MAP_CLIENT_ID="${{ secrets.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID }}" \
             -e NAVER_MAP_CLIENT_SECRET="${{ secrets.NAVER_MAP_CLIENT_SECRET }}" \
             -e NEXT_PUBLIC_KAKAO_JS_KEY="${{ secrets.NEXT_PUBLIC_KAKAO_JS_KEY }}" \
             --user 1001:1001 \
-            -v /home/ubuntu/wedding-website/uploads:/app/public/uploads \
+            -v /home/min/monsil-wedding/uploads:/app/public/uploads \
             ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
 
           sleep 5
